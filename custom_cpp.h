@@ -10,6 +10,10 @@
 #include <cstdint>
 #include <fstream>
 #include <sstream>
+#include <cstdlib>
+#include <ctime>
+#include <type_traits>
+#include <random>
 
 using string = std::string;
 using D64 = double;
@@ -58,6 +62,30 @@ inline void print(const PList &list_data) {
         std::visit([](const auto &val) { std::cout << val << " "; }, item);
     }
     std::cout << std::endl;
+}
+
+inline void print(int message, bool spec = false) {
+    if (spec) {
+        std::cout << message;
+    } else {
+        std::cout << message << std::endl;
+    }
+}
+
+inline void print(D64 message, bool spec = false) {
+    if (spec) {
+        std::cout << std::to_string(message);
+    } else {
+        std::cout << std::to_string(message) << std::endl;
+    }
+}
+
+inline void print(F32 message, bool spec = false) {
+    if (spec) {
+        std::cout << std::to_string(message);
+    } else {
+        std::cout << std::to_string(message) << std::endl;
+    }
 }
 
 // Custom list functions
@@ -124,6 +152,32 @@ inline string str(D64 num) {
     return std::to_string(num);
 }
 
+inline string str(int num) {
+    return std::to_string(num);
+}
+
+inline string str(string s) { // Helps function in the backend and programs from the user to run more smoothly without bugs
+    return s;
+}
+
+inline string str(const PList& UPL) {
+    string result;
+
+    for (const auto& item : UPL) {
+        std::visit([&result](const auto& value) {
+            using T = std::decay_t<decltype(value)>;
+
+            if constexpr (std::is_same_v<T, string>) {
+                result += value;
+            } else {
+                result += std::to_string(value);
+            }
+        }, item);
+    }
+
+    return result;
+}
+
 // Math & Type Conversions
 inline D64 power(D64 v1, D64 v2) {
     return std::pow(v1, v2);
@@ -144,6 +198,8 @@ inline D64 square_root(int var) {
 inline int abs(int var) {
     return std::abs(var);
 }
+
+// PList functions
 
 inline int len(const PList &var) {
     return var.size();
@@ -176,6 +232,7 @@ inline PList range(int start, int stop, int step = 1) {
     return RL;
 }
 
+// Convertion functions
 
 inline D64 Convert_D64(F32 var) {
     return static_cast<D64>(var);
@@ -183,4 +240,22 @@ inline D64 Convert_D64(F32 var) {
 
 inline F32 Convert_C32(D64 var) {
     return static_cast<F32>(var);
+}
+
+// Random number functions
+
+inline int BigRandomNumber() {
+    srand(time(0));
+    return rand();
+}
+
+inline int RandomNumber(int var) {
+    srand(time(0));
+    return rand() % var;
+}
+
+inline int RandomInRange(int var1=1, int var2=10) {
+    static std::mt19937 generator(std::random_device{}());
+    static std::uniform_int_distribution<int> distribution(var1, var2);
+    return distribution(generator);
 }
