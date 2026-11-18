@@ -58,10 +58,11 @@ void print(const T &message, bool spec = false) {
 }
 
 inline void print(const PList &list_data) {
+    std::cout << "[";
     for (const auto &item : list_data) {
-        std::visit([](const auto &val) { std::cout << val << " "; }, item);
+        std::visit([](const auto &val) { std::cout << val << ", "; }, item);
     }
-    std::cout << std::endl;
+    std::cout << " End_of_list_data]" << std::endl;
 }
 
 inline void print(int message, bool spec = false) {
@@ -89,36 +90,56 @@ inline void print(F32 message, bool spec = false) {
 }
 
 // Custom list functions
-inline PList Add_Mainlists(const PList &fl, const PList &sl) {
-    PList rd;
-    size_t total = fl.size();
-    if (sl.size() < total) {
-        total = sl.size();
-    }
+template <typename Op>
+inline PList apply_PLs(const PList& fl, const PList& sl, Op op) {
+    PList result;
+    const size_t total = std::min(fl.size(), sl.size());
 
-    for (size_t cc = 0; cc < total; ++cc) {
-        std::visit([&rd](const auto &a, const auto &b) {
+    for (size_t i = 0; i < total; ++i) {
+        std::visit([&](const auto& a, const auto& b) {
             using T1 = std::decay_t<decltype(a)>;
             using T2 = std::decay_t<decltype(b)>;
 
-            if constexpr (std::is_arithmetic_v<T1> && std::is_arithmetic_v<T2>) {
-                rd.push_back(a + b);
-            } 
-            else if constexpr (std::is_same_v<T1, string> && std::is_same_v<T2, string>) {
-                rd.push_back(a + b);
-            } 
-            else {
-                if constexpr (std::is_arithmetic_v<T1>) {
-                    rd.push_back(std::to_string(a) + b);
-                } else if constexpr (std::is_arithmetic_v<T2>) {
-                    rd.push_back(a + std::to_string(b));
-                }
+            if constexpr (std::is_arithmetic_v<T1> &&
+                          std::is_arithmetic_v<T2>) {
+                result.emplace_back(op(a, b));
+            } else {
+                throw std::invalid_argument(
+                    "List arithmetic requires numeric elements");
             }
-        }, fl[cc], sl[cc]);
+        }, fl[i], sl[i]);
     }
 
-    return rd;
+    return result;
 }
+
+inline PList Add_PLs(const PList& fl, const PList& sl) {
+    return apply_PLs(fl, sl, [](const auto& a, const auto& b) {
+        return a + b;
+    });
+}
+
+inline PList Sub_PLs(const PList& fl, const PList& sl) {
+    return apply_PLs(fl, sl, [](const auto& a, const auto& b) {
+        return a - b;
+    });
+}
+
+inline PList Mul_PLs(const PList& fl, const PList& sl) {
+    return apply_PLs(fl, sl, [](const auto& a, const auto& b) {
+        return a * b;
+    });
+}
+
+inline PList Div_PLs(const PList& fl, const PList& sl) {
+    return apply_PLs(fl, sl, [](const auto& a, const auto& b) {
+        if (b == 0) {
+            throw std::domain_error("Division by zero in list arithmetic");
+        }
+        return a / b;
+    });
+}
+
 
 inline PList list(const PList &var) {
     return var;
@@ -162,7 +183,6 @@ inline string str(string s) { // Helps function in the backend and programs from
 
 inline string str(const PList& UPL) {
     string result;
-
     for (const auto& item : UPL) {
         std::visit([&result](const auto& value) {
             using T = std::decay_t<decltype(value)>;
@@ -244,14 +264,9 @@ inline F32 Convert_C32(D64 var) {
 
 // Random number functions
 
-inline int BigRandomNumber() {
+inline int RandomNumber() {
     srand(time(0));
     return rand();
-}
-
-inline int RandomNumber(int var) {
-    srand(time(0));
-    return rand() % var;
 }
 
 inline int RandomInRange(int var1=1, int var2=10) {
@@ -259,3 +274,4 @@ inline int RandomInRange(int var1=1, int var2=10) {
     static std::uniform_int_distribution<int> distribution(var1, var2);
     return distribution(generator);
 }
+
